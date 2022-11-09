@@ -7,14 +7,31 @@ pub struct Chip8App {
     chip8_core: chip8_core::Chip8Core,
 }
 
-fn emulator_loop(mut egui_context: ResMut<EguiContext>, mut chip8_app: ResMut<Chip8App>) {
+fn emulator_loop(
+    mut egui_context: ResMut<EguiContext>,
+    mut chip8_app: ResMut<Chip8App>,
+    keyboard_input: Res<Input<KeyCode>>,
+) {
     // logging
-    chip8_app.chip8_core.out_log();
+    // chip8_app.chip8_core.out_log();
 
     // input
+    let key = if keyboard_input.pressed(KeyCode::W) {
+        Some(chip8_core::Key::TWO)
+    } else if keyboard_input.pressed(KeyCode::A) {
+        Some(chip8_core::Key::FOUR)
+    } else if keyboard_input.pressed(KeyCode::X) {
+        Some(chip8_core::Key::EIGHT)
+    } else if keyboard_input.pressed(KeyCode::D) {
+        Some(chip8_core::Key::SIX)
+    } else if keyboard_input.pressed(KeyCode::S) {
+        Some(chip8_core::Key::FIVE)
+    } else {
+        None
+    };
 
     // tick CPU
-    chip8_app.chip8_core.tick(None);
+    chip8_app.chip8_core.tick(key);
 
     // output
     let disp_data = chip8_app.chip8_core.get_display_data();
