@@ -356,6 +356,7 @@ impl Ram {
 // 4 5 6 D
 // 7 8 9 E
 // A 0 B F
+#[derive(Clone, Copy)]
 pub enum Key {
     ZERO,
     ONE,

@@ -3,20 +3,16 @@ use bevy_egui::{egui, EguiContext, EguiPlugin};
 use chip8_core;
 use std::{fs::File, io::Read, path::Path};
 
-pub struct Chip8App {
+struct Chip8App {
     chip8_core: chip8_core::Chip8Core,
 }
 
-fn emulator_loop(
-    mut egui_context: ResMut<EguiContext>,
-    mut chip8_app: ResMut<Chip8App>,
-    keyboard_input: Res<Input<KeyCode>>,
-) {
-    // logging
-    // chip8_app.chip8_core.out_log();
+struct KeyInput {
+    key: Option<chip8_core::Key>,
+}
 
-    // input
-    let key = if keyboard_input.pressed(KeyCode::W) {
+fn input_keys(mut key_input: ResMut<KeyInput>, keyboard_input: Res<Input<KeyCode>>) {
+    key_input.key = if keyboard_input.pressed(KeyCode::W) {
         Some(chip8_core::Key::TWO)
     } else if keyboard_input.pressed(KeyCode::A) {
         Some(chip8_core::Key::FOUR)
@@ -29,11 +25,9 @@ fn emulator_loop(
     } else {
         None
     };
+}
 
-    // tick CPU
-    chip8_app.chip8_core.tick(key);
-
-    // output
+fn display(mut egui_context: ResMut<EguiContext>, chip8_app: Res<Chip8App>) {
     let disp_data = chip8_app.chip8_core.get_display_data();
     let mut out_data = String::new();
 
@@ -55,6 +49,12 @@ fn emulator_loop(
     });
 }
 
+fn tick_emulator(mut chip8_app: ResMut<Chip8App>, key_input: Res<KeyInput>) {
+    // chip8_app.chip8_core.out_log(); // logging
+
+    chip8_app.chip8_core.tick(key_input.key);
+}
+
 fn main() {
     let path = Path::new("./rom/IBM Logo.ch8");
     let file = match File::open(&path) {
@@ -74,10 +74,15 @@ fn main() {
         chip8_core: chip8_core,
     };
 
+    let key_input = KeyInput { key: None };
+
     App::new()
         .insert_resource(chip8_app)
+        .insert_resource(key_input)
         .add_plugins(DefaultPlugins)
         .add_plugin(EguiPlugin)
-        .add_system(emulator_loop)
+        .add_system(tick_emulator)
+        .add_system(display)
+        .add_system(input_keys)
         .run();
 }
