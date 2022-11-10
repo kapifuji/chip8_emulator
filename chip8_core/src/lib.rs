@@ -279,7 +279,8 @@ impl Cpu {
                 self.i += self.v[x as usize] as u16;
             }
             (0xf, x, 0x2, 0x9) => {
-                self.i = 0x100 + (x * 5) as u16;
+                let offset = (self.v[x as usize] as u16) * 5;
+                self.i = 0x100 + offset;
             }
             (0xf, x, 0x3, 0x3) => {
                 let num = self.v[x as usize];
