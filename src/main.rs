@@ -52,7 +52,9 @@ fn display(mut egui_context: ResMut<EguiContext>, chip8_app: Res<Chip8App>) {
 fn tick_emulator(mut chip8_app: ResMut<Chip8App>, key_input: Res<KeyInput>) {
     // chip8_app.chip8_core.out_log(); // logging
 
-    chip8_app.chip8_core.tick(key_input.key);
+    for _ in 0..40 {
+        chip8_app.chip8_core.tick(key_input.key);
+    }
 }
 
 fn main() {
