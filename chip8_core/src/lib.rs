@@ -1,9 +1,3 @@
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time::{Duration, Instant};
-
 struct Ram {
     memory: [u8; 0xFFF],
 }
@@ -14,14 +8,13 @@ struct Rom {
 
 #[derive(Default, Debug)]
 struct Cpu {
-    v: [u8; 16],                 // 8bit general register
-    i: u16,                      // register for store memory address
-    delay_timer: Arc<Mutex<u8>>, // delay register
-    sound_timer: Arc<Mutex<u8>>, // sound timer register
-    sp: u8,                      // stack pointer
-    stack: [u16; 16],            // stack
-    pc: u16,                     // program counter
-    is_start: Arc<AtomicBool>,   // is running CPU
+    v: [u8; 16],      // 8bit general register
+    i: u16,           // register for store memory address
+    delay_timer: u8,  // delay register
+    sound_timer: u8,  // sound timer register
+    sp: u8,           // stack pointer
+    stack: [u16; 16], // stack
+    pc: u16,          // program counter
 }
 
 impl Cpu {
@@ -33,41 +26,17 @@ impl Cpu {
         }
     }
 
-    pub fn run(&self) {
-        self.is_start.store(true, Ordering::Relaxed);
-
-        let delay = self.delay_timer.clone();
-        let sound = self.sound_timer.clone();
-        let is_start = self.is_start.clone();
-
-        thread::spawn(move || loop {
-            let start = Instant::now();
-
-            if is_start.load(Ordering::Relaxed) == false {
-                break;
-            }
-
-            let mut delay_t = delay.lock().unwrap();
-            if *delay_t > 0 {
-                *delay_t -= 1;
-            }
-
-            // 音はどうやって鳴らすか...
-            let mut sound_t = sound.lock().unwrap();
-            if *sound_t > 0 {
-                *sound_t -= 1;
-                println!("sound is enable...");
-            }
-
-            drop(delay_t);
-            drop(sound_t);
-
-            thread::sleep(Duration::new(1, 0).div_f64(60.0) - start.elapsed());
-        });
+    pub fn tick_timer(&mut self) {
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
     }
 
-    pub fn stop(&mut self) {
-        self.is_start.store(false, Ordering::Relaxed);
+    pub fn tick_sound(&mut self) {
+        if self.sound_timer > 0 {
+            self.sound_timer -= 1;
+            println!("sound is enable.")
+        }
     }
 
     pub fn tick(&mut self, ram: &mut Ram, key: Option<Key>, display: &mut Display) {
@@ -263,7 +232,7 @@ impl Cpu {
                 }
             }
             (0xf, x, 0x0, 0x7) => {
-                self.v[x as usize] = *self.delay_timer.lock().unwrap();
+                self.v[x as usize] = self.delay_timer;
             }
             (0xf, x, 0x0, 0xa) => {
                 if let Some(key) = key {
@@ -273,10 +242,10 @@ impl Cpu {
                 }
             }
             (0xf, x, 0x1, 0x5) => {
-                *self.delay_timer.lock().unwrap() = self.v[x as usize];
+                self.delay_timer = self.v[x as usize];
             }
             (0xf, x, 0x1, 0x8) => {
-                *self.sound_timer.lock().unwrap() = self.v[x as usize];
+                self.sound_timer = self.v[x as usize];
             }
             (0xf, x, 0x1, 0xe) => {
                 self.i += self.v[x as usize] as u16;
@@ -432,12 +401,10 @@ impl Chip8Core {
         self.cpu.tick(&mut self.ram, key, &mut self.display);
     }
 
-    pub fn run(&self) {
-        self.cpu.run();
-    }
-
-    pub fn stop(&mut self) {
-        self.cpu.stop();
+    // call 60Hz
+    pub fn tick_timer_and_sound(&mut self) {
+        self.cpu.tick_timer();
+        self.cpu.tick_sound();
     }
 
     pub fn get_display_data(&self) -> [[bool; 64]; 32] {
