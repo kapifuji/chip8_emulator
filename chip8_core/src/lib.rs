@@ -59,6 +59,9 @@ impl Cpu {
                 println!("sound is enable...");
             }
 
+            drop(delay_t);
+            drop(sound_t);
+
             thread::sleep(Duration::new(1, 0).div_f64(60.0) - start.elapsed());
         });
     }
