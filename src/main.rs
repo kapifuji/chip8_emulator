@@ -54,8 +54,9 @@ fn tick_emulator(mut chip8_app: ResMut<Chip8App>, key_input: Res<KeyInput>) {
 
     chip8_app.chip8_core.tick_timer_and_sound();
 
-    for _ in 0..40 {
-        chip8_app.chip8_core.tick(key_input.key);
+    chip8_app.chip8_core.tick(key_input.key);
+    for _ in 0..39 {
+        chip8_app.chip8_core.tick(None);
     }
 }
 
